@@ -19,7 +19,7 @@ func NewPromise(value interface{}) *Promise {
 	}
 }
 
-// GetChan returns a channel with PromiseResult. The result is only send when `.Finally` is called.
+// GetChan returns a channel with PromiseResult. The result is only sent when `.Finally` is called.
 func (p *Promise) GetChan() chan PromiseResult {
 	if p.chn == nil {
 		p.chn = make(chan PromiseResult, 1)
