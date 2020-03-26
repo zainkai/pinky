@@ -46,5 +46,23 @@ Promises can be chained together
 	})
 
 	fmt.Println("Recieved Value: ", <-sum)
+
+Promises Also have integrated channels
+
+	adderPromise := NewPromise(10)
+	sum := adderPromise.GetChan()
+
+	go adderPromise.Then(func(value interface{}) (interface{}, error) {
+		i, _ := value.(int)
+		fmt.Println("Adding one.")
+
+		return i + 1, nil
+	}).Finally(func(value interface{}, _ error) {
+		i, _ := value.(int)
+		fmt.Println("final promise value: ", i)
+		// the PromiseResult will be sent after final is called.
+	})
+
+	fmt.Println("Recieved Value: ", <-sum)
 */
 package pinky

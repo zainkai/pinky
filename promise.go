@@ -5,16 +5,6 @@ import (
 	"time"
 )
 
-// Promise ...
-type Promise struct {
-	wasCaught  bool
-	isResolved bool
-	isRejected bool
-
-	value interface{}
-	err   error
-}
-
 // NewPromise Creates a new promise with a starting value
 func NewPromise(value interface{}) *Promise {
 	return &Promise{
@@ -24,20 +14,25 @@ func NewPromise(value interface{}) *Promise {
 
 		value: value,
 		err:   nil,
+
+		chn: nil,
 	}
 }
 
-// ResolveFunc resolve function
-type ResolveFunc func(res interface{})
+// GetChan returns a channel with PromiseResult. The result is only send when `.Finally` is called.
+func (p *Promise) GetChan() chan PromiseResult {
+	if p.chn == nil {
+		p.chn = make(chan PromiseResult, 1)
+	}
+
+	return p.chn
+}
 
 // Resolve stores value in promise
 func (p *Promise) Resolve(res interface{}) {
 	p.isResolved = true
 	p.value = res
 }
-
-// RejectFunc reject function
-type RejectFunc func(err error)
 
 // Reject rejects promise and stores error
 func (p *Promise) Reject(err error) {
@@ -83,22 +78,16 @@ func (p *Promise) Then(f interface{}) *Promise {
 		err := function(p.value)
 		if err != nil {
 			p.Reject(err)
-		} else {
-			p.Resolve(nil)
 		}
 	case func() error:
 		err := function()
 		if err != nil {
 			p.Reject(err)
-		} else {
-			p.Resolve(nil)
 		}
 	case func(interface{}):
 		function(p.value)
-		p.Resolve(nil)
 	case func():
 		function()
-		p.Resolve(nil)
 	default:
 		panic(errors.New("bad promise Then function type"))
 	}
@@ -145,6 +134,13 @@ func (p *Promise) Tap(f func(interface{})) *Promise {
 // Finally allows the promise to finish. This chain can be used to signal go channels for async execution.
 func (p *Promise) Finally(f func(interface{}, error)) (interface{}, error) {
 	f(p.value, p.err)
+
+	if p.chn != nil {
+		p.chn <- PromiseResult{
+			Value: p.value,
+			Err:   p.err,
+		}
+	}
 
 	return p.value, p.err
 }
